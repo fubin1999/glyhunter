@@ -1,0 +1,86 @@
+# GlyHunter 的配置文件
+# Version: 0.1.0
+
+# !!!!! 重要提示 !!!!!
+# 1. 以 # 开头的行 为注释行（例如此行），并不会影响程序的运行。
+# 2. 此文件为 GlyHunter 配置文件的副本，仅修改此文件不会影响 GlyHunter 的运行。
+#    请在编辑并保存后使用 `glyhunter config --update` 命令更新配置文件。
+#    （请使用绝对路径，例如 Windows 下的 `glyhunter config --update C:\yourname\config.yaml`，
+#     或 Mac 下的 ` glyhunter config --update Users/yourname/config.yaml`。）
+# 3. 请勿修改此文件中的键名（例如 `mz_tol`），否则会导致程序无法正常运行。
+
+# 搜库质荷比容差（ppm）
+mz_tol: 50.0
+
+# 数据库中单糖修饰的质量 (Da)
+# 每加一种修饰，在该单糖下添加对应的质量。
+#
+# 例如，如果需要在 NeuAc 上添加一个质量为 50.0 Da 的修饰，写法如下：
+# NeuAc:
+#   - 50.0
+# 此时，库中所有的 NeuAc 都会被添加一个 50.0 的修饰，
+# 即 Hex(5)HexNAc(4)NeuAc(2) 会变成 Hex(5)HexNAc(4)NeuAc[+50.00](2)。
+#
+# 又例如，如果需要在 NeuAc 上添加两个修饰，写法如下：
+# NeuAc:
+#   - 50.0
+#   - 100.0
+# 这样，库中的 Hex(5)HexNAc(4)NeuAc(2) 会裂分为以下 3 种可能：
+#  Hex(5)HexNAc(4)NeuAc[+50.00](2)
+#  Hex(5)HexNAc(4)NeuAc[+100.00](2)
+#  Hex(5)HexNAc(4)NeuAc[+50.00](1)NeuAc[+100.00](1)
+#
+# 如果既想考虑修饰，又想要保留原始的 NeuAc，即不添加修饰，写法如下：
+# NeuAc:
+#   - 0.0  此处表示不添加修饰
+#   - 50.0
+# 此时，库中的 Hex(5)HexNAc(4)NeuAc(2) 会裂分为以下 3 种可能：
+#  Hex(5)HexNAc(4)NeuAc(2)
+#  Hex(5)HexNAc(4)NeuAc[+50.00](2)
+#  Hex(5)HexNAc(4)NeuAc(1)NeuAc[+50.00](1)
+#
+# 若不加修饰，写法如下：
+# NeuAc:
+#   - 0.0
+# （默认情况）
+modifications:
+  Hex:
+    - 0.0
+  HexNAc:
+    - 0.0
+  dHex:
+    - 0.0
+  Pen:
+    - 0.0
+  NeuAc:
+    - 13.0316
+  NeuGc:
+    - 0.0
+  KDN:
+    - 0.0
+  HexA:
+    - 0.0
+
+# 还原端的修饰 (Da)
+reducing_end: 0.0
+
+# 电荷载体（charge carrier）
+# 目前仅支持 H+、Na+ 和 K+。
+charge_carrier: Na+
+
+# 是否开启质量矫正
+calibration_on: true  # 或 false
+
+# 质量矫正使用的峰
+# GlyHunter 会在谱图中以较大的 tol 去寻找这些峰，取 tol 内强度最高的峰的质量作为这些峰的实际质量。
+# 为保证准确，请尽可能选择更多的峰，并确保这些峰一定会在谱图中以较高强度出现。
+# 至少需要 2 个校准峰。
+calibration_by:
+  - 2271.837
+  - 1647.587
+  - 1967.71
+  - 1485.534
+  - 2417.895
+
+# 质量矫正的质量容差（ppm)
+calibration_tol: 500.0
