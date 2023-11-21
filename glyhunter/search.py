@@ -1,11 +1,24 @@
+from __future__ import annotations
+
 from collections.abc import Iterable
-from typing import NamedTuple
+from typing import NamedTuple, Protocol
 
 import pandas as pd
 from attrs import define
+from tqdm import tqdm
 
-from .database import SupportSearch
-from .mass_list import MassList
+from glyhunter.glycan import Ion
+from glyhunter.mass_list import MassList, Peak
+
+
+class SupportSearch(Protocol):
+    """Protocol for supporting search."""
+
+    def search(self, mz: float, tol: float) -> list[Ion]:
+        ...
+
+    def search_closest(self, mz: float, tol: float) -> Ion | None:
+        ...
 
 
 def search_one(
@@ -53,7 +66,7 @@ def search_many(
     """
     searcher = MassListSearcher(search_engine, mz_tol, all_candidates)
     results: list[tuple[str, pd.DataFrame]] = []
-    for mass_list in mass_lists:
+    for mass_list in tqdm(mass_lists):
         result = searcher.run(mass_list)
         results.append((mass_list.name, result))
     return results
@@ -66,8 +79,8 @@ class MassListSearcher:
     Attributes:
         search_engine: An object supporting `search` method.
         mz_tol: The m/z tolerance to use for the search, in ppm.
-        all_candidates: Whether to return all candidates or only the best one.
-            Default: False.
+        all_candidates: If True, return all candidates for each peak.
+            If False, return only the best candidate for each peak. Default: False.
     """
 
     search_engine: SupportSearch
@@ -87,23 +100,11 @@ class MassListSearcher:
         for peak in mass_list:
             tol = peak.mz * self.mz_tol / 1e6
             if self.all_candidates:
-                # This mode is for when we want to return all candidates
-                # within the tolerance.
-                raise NotImplementedError
+                ions = self.search_engine.search(peak.mz, tol)
+                results.extend(self.make_record(peak, ion) for ion in ions)
             else:
-                if result := self.search_engine.search_closest(peak.mz, tol):
-                    record = SearchRecord(
-                        glycan=str(result.comp),
-                        raw_mz=peak.raw_mz,
-                        calibrated_mz=peak.calibrated_mz,
-                        theoretical_mz=result.mz,
-                        intensity=peak.intensity,
-                        area=peak.area,
-                        sn=peak.sn,
-                        charge=result.charge,
-                        charge_carrier=result.charge_carrier,
-                    )
-                    results.append(record)
+                if ion := self.search_engine.search_closest(peak.mz, tol):
+                    results.append(self.make_record(peak, ion))
         result_df = pd.DataFrame(results, columns=SearchRecord._fields)
 
         # Add additional columns
@@ -116,6 +117,20 @@ class MassListSearcher:
 
         return result_df
 
+    @staticmethod
+    def make_record(peak: Peak, ion: Ion) -> SearchRecord:
+        """Make a SearchRecord from a Peak and an Ion."""
+        return SearchRecord(
+            glycan=str(ion),
+            raw_mz=peak.raw_mz,
+            calibrated_mz=peak.calibrated_mz,
+            theoretical_mz=ion.mz,
+            intensity=peak.intensity,
+            area=peak.area,
+            sn=peak.sn,
+            charge_carrier=ion.charge_carrier,
+        )
+
 
 class SearchRecord(NamedTuple):
     """A record of a search result for a peak."""
@@ -127,5 +142,4 @@ class SearchRecord(NamedTuple):
     intensity: float
     area: float
     sn: float
-    charge: int
     charge_carrier: str

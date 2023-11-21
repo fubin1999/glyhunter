@@ -1,5 +1,5 @@
 # GlyHunter 的配置文件
-# Version: 0.1.0
+# Version: 0.1.1
 
 # !!!!! 重要提示 !!!!!
 # 1. 以 # 开头的行 为注释行（例如此行），并不会影响程序的运行。
@@ -60,6 +60,33 @@ modifications:
     - 0.0
   HexA:
     - 0.0
+
+# De-Novo 模式下的单糖数量限制
+constraints:
+  Hex:
+    - 3  # 最少数量
+    - 9  # 最多数量
+  HexNAc:
+    - 2
+    - 7
+  dHex:
+    - 0
+    - 5
+  Pen:
+    - 0
+    - 0
+  NeuAc:
+    - 0
+    - 4
+  NeuGc:
+    - 0
+    - 0
+  KDN:
+    - 0
+    - 0
+  HexA:
+    - 0
+    - 0
 
 # 还原端的修饰 (Da)
 reducing_end: 0.0

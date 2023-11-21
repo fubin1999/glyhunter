@@ -2,36 +2,14 @@
 from __future__ import annotations
 
 import re
-from collections.abc import Generator, Mapping, Iterable
-from itertools import product
+from collections.abc import Mapping
 from pathlib import Path
-from typing import Optional, Protocol
+from typing import Optional
 
-from attrs import define, frozen, field
+from attrs import define, field
 
 from glyhunter import utils
-
-MASSES = {
-    "Hex": 162.0528,
-    "HexNAc": 203.0794,
-    "dHex": 146.0579,
-    "Pen": 132.0423,
-    "NeuAc": 291.0954,
-    "NeuGc": 307.0903,
-    "KDN": 250.0689,
-    "HexA": 176.0321,
-    "H+": 1.0073,
-    "H20": 18.0106,
-    "K+": 38.9637,
-    "Na+": 22.9898,
-    "P": 79.9663,
-    "S": 79.9568,
-}
-
-MONOSACCHARIDES = ["Hex", "HexNAc", "dHex", "Pen", "NeuAc", "NeuGc", "KDN", "HexA"]
-"""All monosaccharides supported by GlyHunter. 
-All notations are in Byonic format, e.g. dHex for deoxyhexose (not Fuc).
-The order is important, as it is used to sort the monosaccharides in the output."""
+from glyhunter.glycan import Ion, generate_ion, check_comp
 
 
 def load_database(
@@ -65,92 +43,6 @@ def load_database(
 
 class DatabaseError(Exception):
     """Base class for all database errors."""
-
-
-@frozen
-class MonoSaccharide:
-    """A monosaccharide.
-
-    Attributes:
-        name (str): The name of the monosaccharide.
-        modi (float): The mass of the modification.
-    """
-
-    name: str = field()
-    modi: float = field(default=0.0)
-
-    @name.validator
-    def _validate_name(self, attribute, value):
-        if value not in MONOSACCHARIDES:
-            raise ValueError(f"Unknown monosaccharide {value}.")
-
-    def __str__(self):
-        if self.modi == 0.0:
-            return self.name
-        return f"{self.name}[{self.modi:+.4f}]"
-
-    @property
-    def mass(self) -> float:
-        """The mass of the monosaccharide."""
-        return MASSES[self.name] + self.modi
-
-
-@define
-class Composition:
-    """A glycan composition.
-
-    Attributes:
-        comp (Mapping): The composition of the glycan, with MonoSaccharides as keys and
-            their counts as values.
-        reducing_end (float): The mass of the reducing end modification.
-    """
-
-    comp: dict[MonoSaccharide, int] = field(converter=dict)
-    reducing_end: float = field(default=0.0)
-
-    def __attrs_post_init__(self):
-        # Sort the monosaccharides by their name
-        # Note that dict in python is ordered since 3.7
-        self.comp = {
-            k: self.comp[k]
-            for k in sorted(self.comp, key=lambda x: MONOSACCHARIDES.index(x.name))
-        }
-
-    def __str__(self):
-        return "".join([f"{k}({v})" for k, v in self.comp.items()])
-
-    @property
-    def mass(self) -> float:
-        """The mass of the glycan composition."""
-        return (
-            sum(k.mass * v for k, v in self.comp.items())
-            + self.reducing_end
-            + MASSES["H20"]
-        )
-
-
-@define
-class Ion:
-    """An ion of a glycan."""
-
-    comp: Composition
-    charge: int = 1
-    charge_carrier: str = "Na+"
-
-    @property
-    def mz(self) -> float:
-        """m/z value of the ion."""
-        return self.comp.mass / self.charge + MASSES[self.charge_carrier]
-
-
-class SupportSearch(Protocol):
-    """Protocol for supporting search."""
-
-    def search(self, mz: float, tol: float) -> list[Ion]:
-        ...
-
-    def search_closest(self, mz: float, tol: float) -> Ion | None:
-        ...
 
 
 @define
@@ -199,7 +91,6 @@ class Database:
         filename: str | Path,
         *,
         charge_carrier: str = "Na+",
-        charges: Iterable[int] = (1,),
         reducing_end: float = 0.0,
         modifications: Optional[Mapping[str, list[float]]] = None,
     ) -> Database:
@@ -227,7 +118,6 @@ class Database:
         Args:
             filename: The filename of the Byonic file.
             charge_carrier: The charge carrier to use. Default to "H+".
-            charges: The charges to use. Default to 1.
             reducing_end: The mass of the reducing end modification. Default to 0.0.
             modifications: The modifications to use. The keys are the monosaccharides and
                 the values are the mass of the modifications. Optional.
@@ -238,47 +128,29 @@ class Database:
         if modifications is None:
             modifications = {}
 
-        def parse_line(
-            line_: str, modifications_: Mapping[str, list[float]]
-        ) -> Generator[Composition, None, None]:
-            """Parse a line from the Byonic file."""
-            # Ignore the mass behind "%"
-            line_ = line_.split("%")[0]
-
-            # --- Parse the composition ---
-            comp_name_dict: dict[str, int] = {}
-            for match in re.finditer(r"([A-Za-z]+)\((\d+)\)", line_):
-                name = match.group(1)
-                count = int(match.group(2))
-                comp_name_dict[name] = count
-
-            # --- Add the modifications ---
-            # Get the subset of the modifications that are in the composition,
-            # and set the default value to 0.0,
-            # The order of modifications is the same as the order of monosaccharides
-            # in the composition.
-            modifications_ = {k: modifications_.get(k, [0.0]) for k in comp_name_dict}
-            # Get all combinations of modifications.
-            for mods in product(*modifications_.values()):
-                comp_dict = {
-                    MonoSaccharide(name, modi): comp_name_dict[name]
-                    for name, modi in zip(modifications_, mods)
-                }
-                yield Composition(comp=comp_dict, reducing_end=reducing_end)
-
-        compositions: list[Composition] = []
+        ions: list[Ion] = []
         with open(filename, encoding="utf-8") as f:
             for line in f:
                 line = line.strip()
                 if not line or line.startswith("#"):
                     continue
-                compositions.extend(parse_line(line, modifications))
-
-        ions: list[Ion] = []
-        for comp in compositions:
-            for charge in charges:
-                ions.append(
-                    Ion(comp=comp, charge=charge, charge_carrier=charge_carrier)
+                comp_str = line.split("%")[0]  # Ignore the mass behind "%"
+                comp_dict = _parse_byonic_line(comp_str)
+                valid, reason = check_comp(comp_dict)
+                if not valid:
+                    raise DatabaseError(f"Invalid composition: {comp_str}. {reason}")
+                ions.extend(
+                    generate_ion(comp_dict, modifications, reducing_end, charge_carrier)
                 )
 
         return cls(data=ions)
+
+
+def _parse_byonic_line(line: str) -> dict[str, int]:
+    """Parse a line from the Byonic file."""
+    comp: dict[str, int] = {}
+    for match in re.finditer(r"([A-Za-z]+)\((\d+)\)", line):
+        name = match.group(1)
+        count = int(match.group(2))
+        comp[name] = count
+    return comp

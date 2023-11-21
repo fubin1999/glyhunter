@@ -5,6 +5,7 @@ from typing import Optional
 from glyhunter import utils
 from glyhunter.config import Config, load_config
 from glyhunter.database import Database, load_database, DatabaseError
+from glyhunter.denovo import DeNovoEngine
 from glyhunter.mass_list import MassList
 from glyhunter.results_export import write_mass_list_results, write_summary_tables
 from glyhunter.search import search_many
@@ -46,6 +47,7 @@ def run(
     output_path: Optional[str | Path] = None,
     config_path: Optional[str | Path] = None,
     db_path: Optional[str | Path] = None,
+    denovo: bool = False,
 ) -> Path:
     """Run GlyHunter.
 
@@ -57,17 +59,27 @@ def run(
             the GlyHunter directory.
         db_path: Path to database file, optional. Default to the database file in the
             GlyHunter directory.
+        denovo: Whether to perform de novo search. Default: False.
 
     Returns:
         Path to output directory.
     """
     config = load_config(config_path)
-    db = load_database(
-        db_path,
-        charge_carrier=config["charge_carrier"],
-        reducing_end=config["reducing_end"],
-        modifications=config["modifications"],
-    )
+
+    if denovo:
+        search_engine = DeNovoEngine(
+            charge_carrier=config["charge_carrier"],
+            reducing_end=config["reducing_end"],
+            modifications=config["modifications"],
+            constraints=config["constraints"],
+        )
+    else:
+        search_engine = load_database(
+            db_path,
+            charge_carrier=config["charge_carrier"],
+            reducing_end=config["reducing_end"],
+            modifications=config["modifications"],
+        )
     output_path = output_path or utils.output_directory(input_path)
 
     mass_lists = MassList.from_flex_analysis(input_path)
@@ -75,10 +87,13 @@ def run(
         for mass_list in mass_lists:
             mass_list.calibrate(config["calibration_by"], config["calibration_tol"])
 
-    results = search_many(mass_lists, db, config["mz_tol"], all_candidates=False)
+    results = search_many(
+        mass_lists, search_engine, config["mz_tol"], all_candidates=denovo
+    )
 
     write_mass_list_results(results, output_path)
-    write_summary_tables(results, output_path)
+    if not denovo:
+        write_summary_tables(results, output_path)
 
     return output_path
 

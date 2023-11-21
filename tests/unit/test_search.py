@@ -16,22 +16,36 @@ class MockResult(NamedTuple):
 
 class MockSearcher:
 
-    def search_closest(self, mz, tol):
-        pass
+    def search(self, mz, tol):
+        return [MockResult(mz, 1, "Na+", "HexNAc(2)Hex(5)NeuAc(1)")]
 
     def search_closest(self, mz, tol):
         return MockResult(mz, 1, "Na+", "HexNAc(2)Hex(5)NeuAc(1)")
 
 
 @pytest.fixture
-def glyhunter_instance():
+def searcher():
     searcher = MockSearcher()
     return MassListSearcher(searcher, mz_tol=10, all_candidates=False)
 
 
-def test_run(glyhunter_instance):
+@pytest.fixture
+def searcher_all_candi():
+    searcher = MockSearcher()
+    return MassListSearcher(searcher, mz_tol=10, all_candidates=True)
+
+
+def test_run(searcher):
+    _test_run(searcher)
+
+
+def test_run_all_candi(searcher_all_candi):
+    _test_run(searcher_all_candi)
+
+
+def _test_run(searcher):
     mass_list = [Peak(1000., 1001., 1e5, 1e5, 10.)]
-    result = glyhunter_instance.run(mass_list)
+    result = searcher.run(mass_list)
     expected_data = {
         "glycan": ["HexNAc(2)Hex(5)NeuAc(1)"],
         "raw_mz": [1000.],
@@ -40,7 +54,6 @@ def test_run(glyhunter_instance):
         "intensity": [1e5],
         "area": [1e5],
         "sn": [10.],
-        "charge": [1],
         "charge_carrier": ["Na+"],
         "ppm": [0.0]
     }

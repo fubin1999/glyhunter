@@ -1,6 +1,6 @@
 [tool.poetry]
 name = "glyhunter"
-version = "0.1.0"
+version = "0.1.1"
 description = ""
 authors = ["fubin1999 <65430559+fubin1999@users.noreply.github.com>"]
 readme = "README.md"
@@ -17,6 +17,7 @@ pandas = "^2.1.0"
 openpyxl = "^3.1.2"
 pyyaml = "^6.0.1"
 click = "^8.1.7"
+tqdm = "^4.66.1"
 
 
 [tool.poetry.group.dev.dependencies]

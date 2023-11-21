@@ -60,10 +60,17 @@ def init(force):
     type=click.Path(exists=True, file_okay=True, dir_okay=False),
     help="Database file path for this run.",
 )
-def run(data_path, output, config, database):
+@click.option(
+    "--denovo",
+    is_flag=True,
+    help="Run de novo glycan composition annotation.",
+)
+def run(data_path, output, config, database, denovo):
     """Run the GlyHunter workflow."""
+    if database and denovo:
+        raise click.UsageError("Cannot specify both --database and --denovo.")
     click.echo("Running GlyHunter.")
-    output_dir = api.run(data_path, output, config, database)
+    output_dir = api.run(data_path, output, config, database, denovo)
     click.echo(f"Results saved to {output_dir}.")
 
 
