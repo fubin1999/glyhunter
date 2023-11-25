@@ -7,7 +7,22 @@ from glyhunter.denovo import DeNovoEngine
 from glyhunter.glycan import MonoSaccharide, Ion
 
 
+make_ion = partial(Ion.from_tuples, reducing_end=1.0, charge_carrier="Na+")
+
+
 class TestDeNovoEngine:
+
+    @pytest.fixture
+    def denovo(self):
+        return DeNovoEngine(
+            charge_carrier="Na+",
+            reducing_end=1.0,
+            modifications={"A": [0.0, 1.0], "B": [0.0]},
+            constraints={"A": (0, 2), "B": (0, 2)},
+            global_mod_constraints={},
+        )
+        # Monosaccharides: A: 1.0, A[+1.0]: 2.0, B: 2.0
+
     @pytest.mark.parametrize(
         "target, solutions",
         [
@@ -24,13 +39,15 @@ class TestDeNovoEngine:
         candidates = [1, 2, 3]
         assert DeNovoEngine._combination_sum(target, tol, candidates) == solutions
 
-    def test_get_mono_candidates(self):
-        modifications = {"A": [1.0], "B": [2.0, 3.0]}
-        assert DeNovoEngine._get_mono_candidates(modifications) == [
+    def test_get_mono_candidates(self, denovo):
+        denovo.global_mod_constraints = {"Ac": 1.0}
+        expected = [
+            MonoSaccharide("A"),
             MonoSaccharide("A", 1.0),
-            MonoSaccharide("B", 2.0),
-            MonoSaccharide("B", 3.0),
+            MonoSaccharide("B"),
+            MonoSaccharide("Ac"),
         ]
+        assert denovo._mono_candidates == expected
 
     def test_filter_constraints(self):
         def mono(name, modi):
@@ -57,16 +74,6 @@ class TestDeNovoEngine:
         ]
         assert result == expected
 
-    @pytest.fixture
-    def denovo(self):
-        return DeNovoEngine(
-            charge_carrier="Na+",
-            reducing_end=1.0,
-            modifications={"A": [0.0, 1.0], "B": [0.0]},
-            constraints={"A": (0, 2), "B": (0, 2)},
-        )
-        # Monosaccharides: A: 1.0, A[+1.0]: 2.0, B: 2.0
-
     @pytest.mark.parametrize(
         "target, expected",
         [
@@ -77,11 +84,17 @@ class TestDeNovoEngine:
         ids=[f"target={t}" for t in (13, 14, 15)],
     )
     def test_search(self, denovo, target, expected):
-        make_ion = partial(Ion.from_tuples, reducing_end=1.0, charge_carrier="Na+")
         # H20: 10, reducing end: 1, Na+: 1
         result = denovo.search(target, tol=0.1)
         expected = [make_ion(ion) for ion in expected]
 
+        assert len(result) == len(expected)
+        assert compare_ion_lists(result, expected)
+
+    def test_search_with_global_modifications(self, denovo):
+        denovo.global_mod_constraints = {"Ac": 1.0}
+        result = denovo.search(13, tol=0.1)
+        expected = [make_ion([("A", 0.0, 1)]), make_ion([("Ac", 0.0, 1)])]
         assert len(result) == len(expected)
         assert compare_ion_lists(result, expected)
 

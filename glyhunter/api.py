@@ -72,6 +72,7 @@ def run(
             reducing_end=config["reducing_end"],
             modifications=config["modifications"],
             constraints=config["constraints"],
+            global_mod_constraints=config["global_modification_constraints"],
         )
     else:
         search_engine = load_database(
@@ -79,6 +80,7 @@ def run(
             charge_carrier=config["charge_carrier"],
             reducing_end=config["reducing_end"],
             modifications=config["modifications"],
+            global_mod_constraints=config["global_modification_constraints"],
         )
     output_path = output_path or utils.output_directory(input_path)
 

@@ -43,15 +43,17 @@ class TestGenerateIon:
         return {"A": 1, "B": 2}
 
     def test_no_modification(self, comp_dict):
-        results = list(glycan.generate_ion(comp_dict, {}, 0.0, "Na+"))
+        results = list(glycan.generate_ion(comp_dict, 0.0, "Na+", {}, {}))
         assert results == [make_ion([("A", 0.0, 1), ("B", 0.0, 2)])]
 
     def test_1_modification(self, comp_dict):
-        results = list(glycan.generate_ion(comp_dict, {"A": [1.0]}, 0.0, "Na+"))
+        results = list(glycan.generate_ion(comp_dict, 0.0, "Na+", {"A": [1.0]}, {}))
         assert results == [make_ion([("A", 1.0, 1), ("B", 0.0, 2)])]
 
     def test_2_modifications_on_1_mono(self, comp_dict):
-        results = list(glycan.generate_ion(comp_dict, {"A": [1.0, 2.0]}, 0.0, "Na+"))
+        results = list(
+            glycan.generate_ion(comp_dict, 0.0, "Na+", {"A": [1.0, 2.0]}, {})
+        )
         assert results == [
             make_ion([("A", 1.0, 1), ("B", 0.0, 2)]),
             make_ion([("A", 2.0, 1), ("B", 0.0, 2)]),
@@ -59,13 +61,13 @@ class TestGenerateIon:
 
     def test_2_modifications_on_2_monos(self, comp_dict):
         results = list(
-            glycan.generate_ion(comp_dict, {"A": [1.0], "B": [2.0]}, 0.0, "Na+")
+            glycan.generate_ion(comp_dict, 0.0, "Na+", {"A": [1.0], "B": [2.0]}, {})
         )
         assert results == [make_ion([("A", 1.0, 1), ("B", 2.0, 2)])]
 
     def test_3_modifications_on_2_monos(self, comp_dict):
         results = list(
-            glycan.generate_ion(comp_dict, {"A": [1.0], "B": [2.0, 3.0]}, 0.0, "Na+")
+            glycan.generate_ion(comp_dict, 0.0, "Na+", {"A": [1.0], "B": [2.0, 3.0]}, {})
         )
         assert results == [
             make_ion([("A", 1.0, 1), ("B", 2.0, 2)]),
@@ -77,20 +79,34 @@ class TestGenerateIon:
     )
     def test_modification_order(self, comp_dict, modifications):
         """Test the order of keys in the modifications dict does not matter."""
-        results = list(glycan.generate_ion(comp_dict, modifications, 0.0, "Na+"))
+        results = list(glycan.generate_ion(comp_dict, 0.0, "Na+", modifications, {}))
         assert results == [make_ion([("A", 1.0, 1), ("B", 2.0, 2)])]
 
     def test_reducing_end(self, comp_dict):
-        results = list(glycan.generate_ion(comp_dict, {}, 1.0, "Na+"))
+        results = list(glycan.generate_ion(comp_dict, 1.0, "Na+", {}, {}))
         assert results == [make_ion([("A", 0.0, 1), ("B", 0.0, 2)], reducing_end=1.0)]
 
     def test_charge_carrier(self, comp_dict):
-        results = list(glycan.generate_ion(comp_dict, {}, 0.0, "K+"))
-        assert results == [make_ion([("A", 0.0, 1), ("B", 0.0, 2)], charge_carrier="K+")]
+        results = list(glycan.generate_ion(comp_dict, 0.0, "K+", {}, {}))
+        assert results == [
+            make_ion([("A", 0.0, 1), ("B", 0.0, 2)], charge_carrier="K+")
+        ]
+
+    def test_global_modifications(self, comp_dict):
+        results = list(glycan.generate_ion(comp_dict, 0.0, "Na+", {}, {"Ac": 1}))
+        assert results == [
+            make_ion([("A", 0.0, 1), ("B", 0.0, 2)]),
+            make_ion([("A", 0.0, 1), ("B", 0.0, 2), ("Ac", 0.0, 1)]),
+        ]
+
+
+def test_possible_global_modifications():
+    constraints = {"Ac": 1, "P": 1}
+    results = list(glycan._possible_global_modifications(constraints))
+    assert results == [{}, {"P": 1}, {"Ac": 1}, {"Ac": 1, "P": 1}]
 
 
 class TestCheckComp:
-
     def test_valid_comp(self):
         assert glycan.check_comp({"A": 1, "B": 2}) == (True, "")
 
@@ -99,7 +115,7 @@ class TestCheckComp:
         [
             ({"B": 1, "D": 2}, "Unknown monosaccharides: D."),
             ({"D": 1, "E": 1}, "Unknown monosaccharides: D, E."),
-        ]
+        ],
     )
     def test_invalid_comp(self, comp, msg):
         assert glycan.check_comp(comp) == (False, msg)

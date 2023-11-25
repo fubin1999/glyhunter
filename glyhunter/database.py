@@ -18,6 +18,7 @@ def load_database(
     charge_carrier: str,
     reducing_end: float,
     modifications: Mapping[str, list[float]],
+    global_mod_constraints: Mapping[str, int],
 ):
     """Load the database.
 
@@ -27,6 +28,8 @@ def load_database(
         reducing_end: The mass of the reducing end modification.
         modifications: The modifications to use. The keys are the monosaccharides and
             the values are the mass of the modifications. Optional.
+        global_mod_constraints: The constraints of global modifications, with
+            global modification names as keys and their max counts as values.
 
     Returns:
         Database: The database.
@@ -38,6 +41,7 @@ def load_database(
         charge_carrier=charge_carrier,
         reducing_end=reducing_end,
         modifications=modifications,
+        global_mod_constraints=global_mod_constraints,
     )
 
 
@@ -93,6 +97,7 @@ class Database:
         charge_carrier: str = "Na+",
         reducing_end: float = 0.0,
         modifications: Optional[Mapping[str, list[float]]] = None,
+        global_mod_constraints: Optional[Mapping[str, int]] = None,
     ) -> Database:
         """Build a Database from a Byonic file.
 
@@ -121,12 +126,16 @@ class Database:
             reducing_end: The mass of the reducing end modification. Default to 0.0.
             modifications: The modifications to use. The keys are the monosaccharides and
                 the values are the mass of the modifications. Optional.
+            global_mod_constraints: The constraints of global modifications, with
+                global modification names as keys and their max counts as values. Optional.
 
         Returns:
             Database: The Database object.
         """
         if modifications is None:
             modifications = {}
+        if global_mod_constraints is None:
+            global_mod_constraints = {}
 
         ions: list[Ion] = []
         with open(filename, encoding="utf-8") as f:
@@ -140,7 +149,13 @@ class Database:
                 if not valid:
                     raise DatabaseError(f"Invalid composition: {comp_str}. {reason}")
                 ions.extend(
-                    generate_ion(comp_dict, modifications, reducing_end, charge_carrier)
+                    generate_ion(
+                        comp_dict,
+                        reducing_end,
+                        charge_carrier,
+                        modifications,
+                        global_mod_constraints,
+                    )
                 )
 
         return cls(data=ions)

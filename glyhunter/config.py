@@ -1,4 +1,5 @@
 from __future__ import annotations
+
 from collections.abc import Callable
 from pathlib import Path
 from typing import Any, ClassVar, Optional
@@ -234,10 +235,10 @@ def valid_constraints(data: dict[str, Any]) -> None:
     validate_exist(data, "constraints")
     constraints = data["constraints"]
     if not isinstance(constraints, dict):
-        raise ConfigTypeError(
-            f"'constraints' must be a dict, not {type(constraints)}."
-        )
-    if not all(isinstance(k, str) and isinstance(v, list) for k, v in constraints.items()):
+        raise ConfigTypeError(f"'constraints' must be a dict, not {type(constraints)}.")
+    if not all(
+        isinstance(k, str) and isinstance(v, list) for k, v in constraints.items()
+    ):
         raise ConfigTypeError("'constraints' must be a dict of lists.")
     for key, (min_, max_) in constraints.items():
         if not isinstance(min_, int):
@@ -256,4 +257,25 @@ def valid_constraints(data: dict[str, Any]) -> None:
         if min_ < 0:
             raise ConfigValueError(
                 f"The minimum value of '{key}' must be non-negative, not {min_}."
+            )
+
+
+@register_validator
+def valid_global_mod_constraints(data: dict[str, Any]) -> None:
+    """Validate global_modification_constraints."""
+    validate_exist(data, "global_modification_constraints")
+    value: dict[str, int] = data["global_modification_constraints"]
+    if set(value) != {"Ac", "P", "S"}:
+        raise ConfigValueError(
+            "Please do not change the keys of `global_modification_constraints`. "
+            "The keys must be exactly 'Ac', 'P' and 'S'."
+        )
+    for key, max_ in value.items():
+        if not isinstance(max_, int):
+            raise ConfigTypeError(
+                f"The maximum value of '{key}' must be an integer, not {type(max_)}."
+            )
+        if max_ < 0:
+            raise ConfigValueError(
+                f"The maximum value of '{key}' must be non-negative, not {max_}."
             )

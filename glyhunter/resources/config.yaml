@@ -61,6 +61,38 @@ modifications:
   HexA:
     - 0.0
 
+# 全局修饰约束
+# 以下修饰为位置位置的修饰，不考虑所修饰单糖的种类，只考虑数量。
+# 此处设置这些修饰的最大数量。设置为 0 表示不考虑该修饰。
+global_modification_constraints:
+  Ac: 0  # 乙酰化
+  P: 0  # 磷酸化
+  S: 0  # 硫酸化
+
+# 还原端的修饰 (Da)
+reducing_end: 0.0
+
+# 电荷载体（charge carrier）
+# 目前仅支持 H+、Na+ 和 K+。
+charge_carrier: Na+
+
+# 是否开启质量矫正
+calibration_on: true  # 或 false
+
+# 质量矫正使用的峰
+# GlyHunter 会在谱图中以较大的 tol 去寻找这些峰，取 tol 内强度最高的峰的质量作为这些峰的实际质量。
+# 为保证准确，请尽可能选择更多的峰，并确保这些峰一定会在谱图中以较高强度出现。
+# 至少需要 2 个校准峰。
+calibration_by:
+  - 2271.837
+  - 1647.587
+  - 1967.71
+  - 1485.534
+  - 2417.895
+
+# 质量矫正的质量容差（ppm)
+calibration_tol: 500.0
+
 # De-Novo 模式下的单糖数量限制
 constraints:
   Hex:
@@ -87,27 +119,3 @@ constraints:
   HexA:
     - 0
     - 0
-
-# 还原端的修饰 (Da)
-reducing_end: 0.0
-
-# 电荷载体（charge carrier）
-# 目前仅支持 H+、Na+ 和 K+。
-charge_carrier: Na+
-
-# 是否开启质量矫正
-calibration_on: true  # 或 false
-
-# 质量矫正使用的峰
-# GlyHunter 会在谱图中以较大的 tol 去寻找这些峰，取 tol 内强度最高的峰的质量作为这些峰的实际质量。
-# 为保证准确，请尽可能选择更多的峰，并确保这些峰一定会在谱图中以较高强度出现。
-# 至少需要 2 个校准峰。
-calibration_by:
-  - 2271.837
-  - 1647.587
-  - 1967.71
-  - 1485.534
-  - 2417.895
-
-# 质量矫正的质量容差（ppm)
-calibration_tol: 500.0

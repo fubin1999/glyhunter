@@ -2,11 +2,28 @@ from __future__ import annotations
 
 import collections
 from collections.abc import Sequence
+from typing import ClassVar
 
 from attrs import define, field
 
 from glyhunter import glycan
 from glyhunter.glycan import Ion, MonoSaccharide
+
+
+def _mono_candi_updater(storage_name):
+    """The property factory for attributes that need to update the _mono_candidates.
+
+    This factory is only used by `DeNovoEngine`.
+    """
+
+    def getter(instance):
+        return object.__getattribute__(instance, storage_name)
+
+    def setter(instance, value):
+        object.__setattr__(instance, storage_name, value)
+        instance._mono_candidates = instance._get_mono_candidates()
+
+    return property(getter, setter)
 
 
 @define
@@ -21,31 +38,55 @@ class DeNovoEngine:
     Attributes:
         charge_carrier: The charge carrier to use.
         reducing_end: The mass of the reducing end modification.
-        modifications: The modifications to use. The keys are the monosaccharides and
+        _modifications: The modifications to use. The keys are the monosaccharides and
             the values are the mass of the modifications.
-        constraints: The constraints to use. The keys are the monosaccharides and
+        _constraints: The constraints to use. The keys are the monosaccharides and
             the values are the minimum and maximum number of the monosaccharides.
+        _global_mod_constraints: The constraints of global modifications, with
+            global modification names as keys and their max counts as values.
     """
 
     charge_carrier: str
     reducing_end: float
-    modifications: dict[str, list[float]]
-    constraints: dict[str, tuple[int, int]]
+
+    # The 3 attributes below will be used to construct the _mono_candidates
+    # Therefore, there are according getters for them,
+    # to make sure that the _mono_candidates is updated when they are changed.
+    _modifications: dict[str, list[float]]
+    _constraints: dict[str, tuple[int, int]]
+    _global_mod_constraints: dict[str, int]
 
     _mono_candidates: list[MonoSaccharide] = field(init=False, repr=False)
+    """This attribute stores all possible monosaccharides with different modifications.
+    It is used as the candidates for the de novo search."""
+
+    modifications: ClassVar[property] = _mono_candi_updater("_modifications")
+    constraints: ClassVar[property] = _mono_candi_updater("_constraints")
+    global_mod_constraints: ClassVar[property] = _mono_candi_updater(
+        "_global_mod_constraints"
+    )
 
     def __attrs_post_init__(self):
-        self._mono_candidates = self._get_mono_candidates(self.modifications)
+        self._mono_candidates = self._get_mono_candidates()
 
-    @staticmethod
-    def _get_mono_candidates(
-        modifications: dict[str, list[float]]
-    ) -> list[MonoSaccharide]:
-        """Generate all possible monosaccharides with different modifications."""
+    def _get_mono_candidates(self) -> list[MonoSaccharide]:
+        """Generate all possible monosaccharides with different modifications.
+
+        Both monosaccharides and global modifications (e.g. Ac) are considered.
+        """
         monos: list[MonoSaccharide] = []
-        for name, mods in modifications.items():
-            for mod in mods:
-                monos.append(MonoSaccharide(name, mod))
+
+        # Add monosaccharides
+        for name, mods in self._modifications.items():
+            if self._constraints[name][1] > 0:  # max count > 0, for speed up searching
+                for mod in mods:
+                    monos.append(MonoSaccharide(name, mod))
+
+        # Add global modifications
+        for name, count in self._global_mod_constraints.items():
+            if count > 0:  # same as above
+                monos.append(MonoSaccharide(name))
+
         return monos
 
     def search(self, mz: float, tol: float) -> list[Ion]:
@@ -68,7 +109,7 @@ class DeNovoEngine:
         for sol in solutions:
             comp = collections.Counter(self._mono_candidates[i] for i in sol)
             comps.append(comp)
-        comps = self._filter_constrains(comps, self.constraints)
+        comps = self._filter_constrains(comps, self._constraints)
 
         ions = [Ion(comp, self.reducing_end, self.charge_carrier) for comp in comps]
         return ions

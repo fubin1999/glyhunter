@@ -5,10 +5,26 @@ from itertools import product
 
 from attr import frozen, field, define
 
-MONOSACCHARIDES = ["Hex", "HexNAc", "dHex", "Pen", "NeuAc", "NeuGc", "KDN", "HexA"]
+MONOSACCHARIDES = [
+    "Hex",
+    "HexNAc",
+    "dHex",
+    "Pen",
+    "NeuAc",
+    "NeuGc",
+    "KDN",
+    "HexA",
+    "Ac",  # global modification
+    "P",  # global modification
+    "S",  # global modification
+]
 """All monosaccharides supported by GlyHunter. 
+
 All notations are in Byonic format, e.g. dHex for deoxyhexose (not Fuc).
-The order is important, as it is used to sort the monosaccharides in the output."""
+The order is important, as it is used to sort the monosaccharides in the output.
+Note that global modifications are also listed here, e.g. Ac for acetylation,
+as they are treated as monosaccharides in GlyHunter.
+"""
 
 MASSES = {
     "Hex": 162.0528,
@@ -23,6 +39,7 @@ MASSES = {
     "H20": 18.0106,
     "K+": 38.9637,
     "Na+": 22.9898,
+    "Ac": 42.0106,
     "P": 79.9663,
     "S": 79.9568,
 }
@@ -30,9 +47,10 @@ MASSES = {
 
 def generate_ion(
     comp: Mapping[str, int],
-    modifications: Mapping[str, list[float]],
     reducing_end: float,
     charge_carrier: str,
+    modifications: Mapping[str, list[float]],
+    global_mod_constraints: Mapping[str, int],
 ) -> Generator[Ion, None, None]:
     """Generate all possible ions from a composition and possible modifications.
 
@@ -48,21 +66,44 @@ def generate_ion(
     Args:
         comp: The composition of the glycan, with monosaccharide names
             as keys and their counts as values.
-        modifications: The modifications to use. The keys are the monosaccharide names,
-            and the values are the mass of the modifications.
         reducing_end: The mass of the reducing end modification.
         charge_carrier: The charge carrier to use.
+        modifications: The modifications to use. The keys are the monosaccharide names,
+            and the values are the mass of the modifications.
+        global_mod_constraints: The constraints of global modifications, with
+            global modification names as keys and their max counts as values.
     """
     modifications = {k: modifications.get(k, [0.0]) for k in comp}
     for mods in product(*modifications.values()):
-        yield Ion(
-            comp={
-                MonoSaccharide(name, modi): comp[name]
-                for name, modi in zip(modifications, mods)
-            },
-            reducing_end=reducing_end,
-            charge_carrier=charge_carrier,
-        )
+        comp_with_mods = {
+            MonoSaccharide(name, modi): comp[name]
+            for name, modi in zip(modifications, mods)
+        }
+        for global_mods in _possible_global_modifications(global_mod_constraints):
+            comp_with_global_mods = comp_with_mods.copy()
+            for name, count in global_mods.items():
+                comp_with_global_mods[MonoSaccharide(name)] = count
+            yield Ion(
+                comp=comp_with_global_mods,
+                reducing_end=reducing_end,
+                charge_carrier=charge_carrier,
+            )
+
+
+def _possible_global_modifications(
+    constraints: Mapping[str, int]
+) -> Generator[dict[str, int], None, None]:
+    """Generate all possible global modifications.
+
+    Args:
+        constraints: The constraints of the glycan, with monosaccharide names
+            as keys and their max counts as values.
+
+    Yields:
+        dict: A possible global modification.
+    """
+    for mods in product(*[range(constraints[k] + 1) for k in constraints]):
+        yield {k: v for k, v in zip(constraints, mods) if v != 0}
 
 
 def check_comp(comp: dict[str, int]) -> tuple[bool, str]:
