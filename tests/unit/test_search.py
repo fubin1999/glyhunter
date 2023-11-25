@@ -13,6 +13,9 @@ class MockResult(NamedTuple):
     charge_carrier: str
     comp: str
 
+    def __str__(self):
+        return self.comp
+
 
 class MockSearcher:
 
