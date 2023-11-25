@@ -226,3 +226,34 @@ def validate_calibration_tol(data: dict[str, Any]) -> None:
         raise ConfigValueError(
             f"'calibration_tol' must be less than 500, not {calibration_tol}."
         )
+
+
+@register_validator
+def valid_constraints(data: dict[str, Any]) -> None:
+    """Validate constraints."""
+    validate_exist(data, "constraints")
+    constraints = data["constraints"]
+    if not isinstance(constraints, dict):
+        raise ConfigTypeError(
+            f"'constraints' must be a dict, not {type(constraints)}."
+        )
+    if not all(isinstance(k, str) and isinstance(v, list) for k, v in constraints.items()):
+        raise ConfigTypeError("'constraints' must be a dict of lists.")
+    for key, (min_, max_) in constraints.items():
+        if not isinstance(min_, int):
+            raise ConfigTypeError(
+                f"The minimum value of '{key}' must be an integer, not {type(min_)}."
+            )
+        if not isinstance(max_, int):
+            raise ConfigTypeError(
+                f"The maximum value of '{key}' must be an integer, not {type(max_)}."
+            )
+        if max_ < min_:
+            raise ConfigValueError(
+                f"The maximum value of '{key}' must be greater than "
+                f"the minimum value, not {min_} > {max_}."
+            )
+        if min_ < 0:
+            raise ConfigValueError(
+                f"The minimum value of '{key}' must be non-negative, not {min_}."
+            )

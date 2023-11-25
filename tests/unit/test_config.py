@@ -186,3 +186,33 @@ def test_validate_calibration_tol_too_large(default_config):
     default_config._data["calibration_tol"] = 1000
     with pytest.raises(ValueError):
         default_config.validate()
+
+
+def test_validate_constraints(default_config):
+    default_config._data["constraints"]["Hex"] = 0.5
+    with pytest.raises(TypeError):
+        default_config.validate()
+
+
+def test_validate_constraints_not_exist(default_config):
+    del default_config._data["constraints"]
+    with pytest.raises(KeyError):
+        default_config.validate()
+
+
+def test_validate_constraints_not_dict(default_config):
+    default_config._data["constraints"] = 0.5
+    with pytest.raises(TypeError):
+        default_config.validate()
+
+
+def test_validate_constraints_negative(default_config):
+    default_config._data["constraints"]["Hex"] = [-1, 0]
+    with pytest.raises(ValueError):
+        default_config.validate()
+
+
+def test_validate_constraints_max_less_than_min(default_config):
+    default_config._data["constraints"]["Hex"] = [1, 0]
+    with pytest.raises(ValueError):
+        default_config.validate()
