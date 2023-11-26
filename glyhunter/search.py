@@ -108,12 +108,8 @@ class MassListSearcher:
         result_df = pd.DataFrame(results, columns=SearchRecord._fields)
 
         # Add additional columns
-        result_df["ppm"] = (
-            (result_df.calibrated_mz - result_df.theoretical_mz)
-            / result_df.raw_mz
-            * 1e6
-        )
-        result_df["ppm"] = result_df["ppm"].round(2)
+        result_df["delta"] = result_df.calibrated_mz - result_df.theoretical_mz
+        result_df["ppm"] = (result_df.delta / result_df.raw_mz * 1e6).round(2)
 
         return result_df
 

@@ -58,6 +58,7 @@ def _test_run(searcher):
         "area": [1e5],
         "sn": [10.],
         "charge_carrier": ["Na+"],
+        "delta": [0.0],
         "ppm": [0.0]
     }
     expected = pd.DataFrame(expected_data)
