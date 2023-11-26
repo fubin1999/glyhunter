@@ -18,6 +18,4 @@ def get_config_path() -> Path:
 
 def output_directory(input_path: str | Path) -> Path:
     """Return the output directory for the given input file."""
-    path = Path(input_path).with_name(Path(input_path).stem + "_glyhunter_results")
-    path.mkdir(exist_ok=True)
-    return path
+    return Path(input_path).with_name(Path(input_path).stem + "_glyhunter_results")

@@ -64,6 +64,11 @@ def run(
     Returns:
         Path to output directory.
     """
+    output_path = Path(output_path) if output_path else utils.output_directory(input_path)
+    if output_path.exists():
+        raise FileExistsError(output_path)
+    output_path.mkdir()
+
     config = load_config(config_path)
 
     if denovo:
@@ -82,7 +87,6 @@ def run(
             modifications=config["modifications"],
             global_mod_constraints=config["global_modification_constraints"],
         )
-    output_path = output_path or utils.output_directory(input_path)
 
     mass_lists = MassList.from_flex_analysis(input_path)
     if config["calibration_on"]:
