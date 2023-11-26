@@ -48,6 +48,7 @@ def run(
     config_path: Optional[str | Path] = None,
     db_path: Optional[str | Path] = None,
     denovo: bool = False,
+    all_candidates: bool = False
 ) -> Path:
     """Run GlyHunter.
 
@@ -60,6 +61,8 @@ def run(
         db_path: Path to database file, optional. Default to the database file in the
             GlyHunter directory.
         denovo: Whether to perform de novo search. Default: False.
+        all_candidates: Whether to output all candidates, rather than the
+            one with most similar m/z. Default: False.
 
     Returns:
         Path to output directory.
@@ -94,11 +97,11 @@ def run(
             mass_list.calibrate(config["calibration_by"], config["calibration_tol"])
 
     results = search_many(
-        mass_lists, search_engine, config["mz_tol"], all_candidates=denovo
+        mass_lists, search_engine, config["mz_tol"], all_candidates=all_candidates
     )
 
     write_mass_list_results(results, output_path)
-    if not denovo:
+    if not all_candidates:
         write_summary_tables(results, output_path)
 
     return output_path
