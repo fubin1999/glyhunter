@@ -63,6 +63,7 @@ def init(force):
     help="Database file path for this run.",
 )
 @click.option(
+    "-n",
     "--denovo",
     is_flag=True,
     help="Run de novo glycan composition annotation.",
