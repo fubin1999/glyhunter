@@ -111,6 +111,14 @@ class MassListSearcher:
         result_df["delta"] = result_df.calibrated_mz - result_df.theoretical_mz
         result_df["ppm"] = (result_df.delta / result_df.raw_mz * 1e6).round(2)
 
+        if not self.all_candidates:
+            # Drop duplicate glycans
+            result_df = (
+                result_df.sort_values("ppm")  # Sort by ppm in ascending order
+                .drop_duplicates("glycan", keep="first")  # Keep the one with the lowest ppm
+                .reset_index(drop=True)
+            )
+
         return result_df
 
     @staticmethod
