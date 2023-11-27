@@ -10,22 +10,6 @@ from glyhunter import glycan
 from glyhunter.glycan import Ion, MonoSaccharide
 
 
-def _mono_candi_updater(storage_name):
-    """The property factory for attributes that need to update the _mono_candidates.
-
-    This factory is only used by `DeNovoEngine`.
-    """
-
-    def getter(instance):
-        return object.__getattribute__(instance, storage_name)
-
-    def setter(instance, value):
-        object.__setattr__(instance, storage_name, value)
-        instance._mono_candidates = instance._get_mono_candidates()
-
-    return property(getter, setter)
-
-
 @define
 class DeNovoEngine:
     """A search engine for de novo glycan sequencing.
@@ -40,7 +24,7 @@ class DeNovoEngine:
         reducing_end: The mass of the reducing end modification.
         _modifications: The modifications to use. The keys are the monosaccharides and
             the values are the mass of the modifications.
-        _constraints: The constraints to use. The keys are the monosaccharides and
+        _mono_constraints: The constraints to use. The keys are the monosaccharides and
             the values are the minimum and maximum number of the monosaccharides.
         _global_mod_constraints: The constraints of global modifications, with
             global modification names as keys and their max counts as values.
@@ -53,23 +37,21 @@ class DeNovoEngine:
     # Therefore, there are according getters for them,
     # to make sure that the _mono_candidates is updated when they are changed.
     _modifications: dict[str, list[float]]
-    _constraints: dict[str, tuple[int, int]]
+    _mono_constraints: dict[str, tuple[int, int]]
     _global_mod_constraints: dict[str, int]
 
     _mono_candidates: list[MonoSaccharide] = field(init=False, repr=False)
     """This attribute stores all possible monosaccharides with different modifications.
     It is used as the candidates for the de novo search."""
-
-    modifications: ClassVar[property] = _mono_candi_updater("_modifications")
-    constraints: ClassVar[property] = _mono_candi_updater("_constraints")
-    global_mod_constraints: ClassVar[property] = _mono_candi_updater(
-        "_global_mod_constraints"
-    )
+    _constraints: dict[str, tuple[int, int]] = field(init=False, repr=False)
+    """This attribute stores the constraints of the monosaccharides and global
+    modifications. It is used as the constraints for the de novo search."""
 
     def __attrs_post_init__(self):
-        self._mono_candidates = self._get_mono_candidates()
+        self._update_mono_candidates()
+        self._update_constraints()
 
-    def _get_mono_candidates(self) -> list[MonoSaccharide]:
+    def _update_mono_candidates(self) -> None:
         """Generate all possible monosaccharides with different modifications.
 
         Both monosaccharides and global modifications (e.g. Ac) are considered.
@@ -78,7 +60,7 @@ class DeNovoEngine:
 
         # Add monosaccharides
         for name, mods in self._modifications.items():
-            if self._constraints[name][1] > 0:  # max count > 0, for speed up searching
+            if self._mono_constraints[name][1] > 0:  # max count > 0, for speed up searching
                 for mod in mods:
                     monos.append(MonoSaccharide(name, mod))
 
@@ -87,7 +69,45 @@ class DeNovoEngine:
             if count > 0:  # same as above
                 monos.append(MonoSaccharide(name))
 
-        return monos
+        self._mono_candidates = monos
+
+    def _update_constraints(self) -> None:
+        """Generate the constraints of the monosaccharides and global modifications."""
+        constraints = {}
+        for name, (min_, max_) in self._mono_constraints.items():
+            constraints[name] = (min_, max_)
+        for name, count in self._global_mod_constraints.items():
+            constraints[name] = (0, count)
+        self._constraints = constraints
+
+    @property
+    def modifications(self) -> dict[str, list[float]]:
+        return self._modifications
+
+    @modifications.setter
+    def modifications(self, value: dict[str, list[float]]):
+        self._modifications = value
+        self._update_mono_candidates()
+
+    @property
+    def mono_constraints(self) -> dict[str, tuple[int, int]]:
+        return self._mono_constraints
+
+    @mono_constraints.setter
+    def mono_constraints(self, value: dict[str, tuple[int, int]]):
+        self._mono_constraints = value
+        self._update_mono_candidates()
+        self._update_constraints()
+
+    @property
+    def global_mod_constraints(self) -> dict[str, int]:
+        return self._global_mod_constraints
+
+    @global_mod_constraints.setter
+    def global_mod_constraints(self, value: dict[str, int]):
+        self._global_mod_constraints = value
+        self._update_mono_candidates()
+        self._update_constraints()
 
     def search(self, mz: float, tol: float) -> list[Ion]:
         """De novo search for ion matching the given m/z and tolerance.

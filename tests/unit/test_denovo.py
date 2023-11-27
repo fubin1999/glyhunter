@@ -18,7 +18,7 @@ class TestDeNovoEngine:
             charge_carrier="Na+",
             reducing_end=1.0,
             modifications={"A": [0.0, 1.0], "B": [0.0]},
-            constraints={"A": (0, 2), "B": (0, 2)},
+            mono_constraints={"A": (0, 2), "B": (0, 2)},
             global_mod_constraints={},
         )
         # Monosaccharides: A: 1.0, A[+1.0]: 2.0, B: 2.0
@@ -95,6 +95,26 @@ class TestDeNovoEngine:
         denovo.global_mod_constraints = {"Ac": 1.0}
         result = denovo.search(13, tol=0.1)
         expected = [make_ion([("A", 0.0, 1)]), make_ion([("Ac", 0.0, 1)])]
+        assert len(result) == len(expected)
+        assert compare_ion_lists(result, expected)
+
+    def test_search_with_global_modifications_constraints_1(self, denovo):
+        result = denovo.search(13, tol=0.1)
+        expected = [make_ion([("A", 0.0, 1)])]
+        assert len(result) == len(expected)
+        assert compare_ion_lists(result, expected)
+
+    def test_search_with_global_modifications_constraints_2(self, denovo):
+        # Test if the global modification is filtered out by global_mod_constraints
+        # If the constraints logic is not working, the result will be :
+        # - [("A", 0.0, 1), ("Ac", 0.0, 1)]
+        # - [("B", 0.0, 1)]
+        # - [("Ac", 0.0, 2)]
+        denovo.global_mod_constraints = {"Ac": 1}
+        denovo.mono_constraints = {"A": (0, 1), "B": (0, 1)}
+        denovo.modifications = {"A": [0.0], "B": [0.0]}
+        result = denovo.search(14, tol=0.1)
+        expected = [make_ion([("B", 0.0, 1)]), make_ion([("A", 0.0, 1), ("Ac", 0.0, 1)])]
         assert len(result) == len(expected)
         assert compare_ion_lists(result, expected)
 
