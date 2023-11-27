@@ -79,7 +79,7 @@ def run(
             charge_carrier=config["charge_carrier"],
             reducing_end=config["reducing_end"],
             modifications=config["modifications"],
-            constraints=config["constraints"],
+            mono_constraints=config["constraints"],
             global_mod_constraints=config["global_modification_constraints"],
         )
     else:
