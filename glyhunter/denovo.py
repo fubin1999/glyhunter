@@ -1,6 +1,6 @@
 from __future__ import annotations
 
-import collections
+from collections import Counter
 from collections.abc import Sequence
 
 from attrs import define, field
@@ -128,7 +128,7 @@ class DeNovoEngine:
 
         comps: list[dict[MonoSaccharide, int]] = []
         for sol in solutions:
-            comp = collections.Counter(self._mono_candidates[i] for i in sol)
+            comp = Counter(self._mono_candidates[i] for i in sol)
             comps.append(comp)
         comps = self._filter_constrains(comps, self._constraints)
 
@@ -181,11 +181,11 @@ class DeNovoEngine:
         """
         results: list[dict[MonoSaccharide, int]] = []
         for comp in comps:
-            comp_x_modif = collections.Counter()
+            comp_x_modif: Counter[str] = Counter()
             for mono, count in comp.items():
                 comp_x_modif[mono.name] += count
-            for mono, (min_, max_) in constraints.items():
-                if comp_x_modif[mono] < min_ or comp_x_modif[mono] > max_:
+            for mono_name, (min_, max_) in constraints.items():
+                if comp_x_modif[mono_name] < min_ or comp_x_modif[mono_name] > max_:
                     break
             else:
                 results.append(comp)

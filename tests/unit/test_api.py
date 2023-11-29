@@ -5,7 +5,6 @@ from glyhunter import api
 
 
 class TestInitiate:
-
     def test_initiate_basic(self):
         """Test initiate() when no .glyhunter directory exists
         and force is False."""
@@ -43,7 +42,9 @@ def test_copy_config(clean_dir):
     """Test copy_config()."""
     api.copy_config(clean_dir)
     assert (clean_dir / "config.yaml").exists()
-    assert (clean_dir / "config.yaml").read_text() == glyhunter.utils.get_config_path().read_text()
+    assert (
+        clean_dir / "config.yaml"
+    ).read_text() == glyhunter.utils.get_config_path().read_text()
 
 
 @pytest.mark.usefixtures("glyhunter_init")
@@ -65,7 +66,9 @@ def test_copy_database(clean_dir):
     """Test copy_database()."""
     api.copy_database(clean_dir)
     assert (clean_dir / "database.byonic").exists()
-    assert (clean_dir / "database.byonic").read_text() == glyhunter.utils.get_db_path().read_text()
+    assert (
+        clean_dir / "database.byonic"
+    ).read_text() == glyhunter.utils.get_db_path().read_text()
 
 
 @pytest.mark.usefixtures("glyhunter_init")
@@ -77,5 +80,3 @@ def test_update_database(clean_dir, mocker):
     api.update_database(new_db_file)
     assert glyhunter.utils.get_db_path().exists()
     assert glyhunter.utils.get_db_path().read_text() == "test"
-
-

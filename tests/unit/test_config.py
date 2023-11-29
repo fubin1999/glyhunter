@@ -12,7 +12,9 @@ def default_config():
 def test_load_config_with_file(mocker):
     config_mock = mocker.Mock()
     config_mock.validate = mocker.Mock()
-    mocker.patch("glyhunter.config.Config.from_yaml", autospec=True, return_value=config_mock)
+    mocker.patch(
+        "glyhunter.config.Config.from_yaml", autospec=True, return_value=config_mock
+    )
     result = load_config("tests/data/test_config.yaml")
     assert result == config_mock
     config_mock.validate.assert_called_once()
@@ -21,7 +23,9 @@ def test_load_config_with_file(mocker):
 @pytest.mark.usefixtures("glyhunter_init")
 def test_load_config_default(mocker):
     config_mock = mocker.Mock()
-    mocker.patch("glyhunter.config.Config.default", autospec=True, return_value=config_mock)
+    mocker.patch(
+        "glyhunter.config.Config.default", autospec=True, return_value=config_mock
+    )
     result = load_config()
     assert result == config_mock
 

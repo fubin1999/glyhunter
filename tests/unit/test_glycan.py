@@ -67,7 +67,9 @@ class TestGenerateIon:
 
     def test_3_modifications_on_2_monos(self, comp_dict):
         results = list(
-            glycan.generate_ion(comp_dict, 0.0, "Na+", {"A": [1.0], "B": [2.0, 3.0]}, {})
+            glycan.generate_ion(
+                comp_dict, 0.0, "Na+", {"A": [1.0], "B": [2.0, 3.0]}, {}
+            )
         )
         assert results == [
             make_ion([("A", 1.0, 1), ("B", 2.0, 2)]),

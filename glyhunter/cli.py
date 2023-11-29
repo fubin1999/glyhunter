@@ -1,6 +1,6 @@
 import shutil
 
-import click
+import click  # type: ignore
 
 from glyhunter import api, utils
 from glyhunter.config import ConfigError
@@ -80,7 +80,9 @@ def run(data_path, output, config, database, denovo, all_candidates):
         raise click.UsageError("Cannot specify both --database and --denovo.")
     click.echo("Running GlyHunter.")
     try:
-        output_dir = api.run(data_path, output, config, database, denovo, all_candidates)
+        output_dir = api.run(
+            data_path, output, config, database, denovo, all_candidates
+        )
     except FileExistsError as e:
         if click.confirm(
             f"Output directory {e.args[0]} already exists. Overwrite?",
@@ -88,7 +90,9 @@ def run(data_path, output, config, database, denovo, all_candidates):
             abort=True,
         ):
             shutil.rmtree(e.args[0])
-            output_dir = api.run(data_path, output, config, database, denovo, all_candidates)
+            output_dir = api.run(
+                data_path, output, config, database, denovo, all_candidates
+            )
     else:
         click.echo(f"Results saved to {output_dir}.")
 

@@ -3,7 +3,7 @@ from __future__ import annotations
 from collections.abc import Mapping, Generator, Iterable
 from itertools import product
 
-from attr import frozen, field, define
+from attrs import frozen, field, define
 
 MONOSACCHARIDES = [
     "Hex",
@@ -163,7 +163,7 @@ class Ion:
         charge_carrier (str): The charge carrier to use. Default to "Na+".
     """
 
-    comp: dict[MonoSaccharide, int] = field(converter=dict)
+    comp: Mapping[MonoSaccharide, int] = field()
     reducing_end: float = field(default=0.0)
     charge_carrier: str = field(default="Na+")
 

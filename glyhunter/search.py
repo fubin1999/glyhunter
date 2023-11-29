@@ -96,7 +96,7 @@ class MassListSearcher:
         Returns:
             pd.DataFrame: A dataframe with the results.
         """
-        results = []
+        results: list[SearchRecord] = []
         for peak in mass_list:
             tol = peak.mz * self.mz_tol / 1e6
             if self.all_candidates:
@@ -115,7 +115,9 @@ class MassListSearcher:
             # Drop duplicate glycans
             result_df = (
                 result_df.sort_values("ppm")  # Sort by ppm in ascending order
-                .drop_duplicates("glycan", keep="first")  # Keep the one with the lowest ppm
+                .drop_duplicates(
+                    "glycan", keep="first"
+                )  # Keep the one with the lowest ppm
                 .reset_index(drop=True)
             )
 
@@ -141,7 +143,7 @@ class SearchRecord(NamedTuple):
 
     glycan: str
     raw_mz: float
-    calibrated_mz: float
+    calibrated_mz: float | None
     theoretical_mz: float
     intensity: float
     area: float

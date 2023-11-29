@@ -1,5 +1,6 @@
 from collections.abc import Iterable
 from pathlib import Path
+from typing import cast
 
 import pandas as pd
 
@@ -42,5 +43,5 @@ def write_summary_tables(
     for by in summary_by:
         summary_s = [result_df.set_index("glycan")[by] for _, result_df in results]
         summary_df = pd.concat(summary_s, axis=1)
-        summary_df.columns = [name for name, _ in results]
+        summary_df.columns = cast(pd.Index, [name for name, _ in results])
         summary_df.to_csv(Path(dirpath) / f"summary_{by}.csv")

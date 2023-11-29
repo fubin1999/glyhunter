@@ -48,7 +48,7 @@ def run(
     config_path: Optional[str | Path] = None,
     db_path: Optional[str | Path] = None,
     denovo: bool = False,
-    all_candidates: bool = False
+    all_candidates: bool = False,
 ) -> Path:
     """Run GlyHunter.
 
@@ -67,7 +67,9 @@ def run(
     Returns:
         Path to output directory.
     """
-    output_path = Path(output_path) if output_path else utils.output_directory(input_path)
+    output_path = (
+        Path(output_path) if output_path else utils.output_directory(input_path)
+    )
     if output_path.exists():
         raise FileExistsError(output_path)
     output_path.mkdir()

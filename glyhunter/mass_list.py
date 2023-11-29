@@ -2,7 +2,7 @@ from __future__ import annotations
 
 from collections.abc import Iterator, Iterable
 from pathlib import Path
-from typing import Literal
+from typing import Literal, cast
 
 import numpy as np
 import pandas as pd
@@ -13,6 +13,7 @@ from numpy.typing import NDArray
 @frozen
 class Peak:
     """A peak in the mass list."""
+
     raw_mz: float  # The raw m/z value of the peak.
     calibrated_mz: float | None  # The calibrated m/z value of the peak.
     intensity: float  # The intensity of the peak.
@@ -87,7 +88,7 @@ class MassList:
             intensity_a = df.iloc[:, quantity_col].values
             area_a = df["Area"].values
             sn_a = df["SN"].values
-            results.append(cls(name, mz_a, intensity_a, area_a, sn_a))
+            results.append(cls(cast(str, name), mz_a, intensity_a, area_a, sn_a))
         return results
 
     def calibrate(self, masses: Iterable[float], tol_ppm: float) -> None:
@@ -115,11 +116,11 @@ class MassList:
         mask = ~np.isnan(raw_masses)
         if sum(mask) < 2:
             raise ValueError("Less than two peaks are matched for calibration.")
-        masses = masses[mask]
-        raw_masses = raw_masses[mask]
+        masses_filtered = masses[mask]
+        raw_masses_filtered = raw_masses[mask]
 
         # Linear regression.
-        slope, intercept = np.polyfit(raw_masses, masses, deg=1)
+        slope, intercept = np.polyfit(raw_masses_filtered, masses_filtered, deg=1)
         self._calibrated_mz_a = slope * self._raw_mz_a + intercept
 
     def __len__(self) -> int:
@@ -129,7 +130,7 @@ class MassList:
         try:
             calibrated_mz_a = self._calibrated_mz_a
         except AttributeError:
-            calibrated_mz_a = [None] * len(self._raw_mz_a)
+            calibrated_mz_a = np.array([None] * len(self._raw_mz_a))
         for raw_mz, calibrated_mz, intensity, area, sn in zip(
             self._raw_mz_a,
             calibrated_mz_a,

@@ -18,7 +18,6 @@ class MockResult(NamedTuple):
 
 
 class MockSearcher:
-
     def search(self, mz, tol):
         return [MockResult(mz, 1, "Na+", "HexNAc(2)Hex(5)NeuAc(1)")]
 
@@ -47,19 +46,19 @@ def test_run_all_candi(searcher_all_candi):
 
 
 def _test_run(searcher):
-    mass_list = [Peak(1000., 1001., 1e5, 1e5, 10.)]
+    mass_list = [Peak(1000.0, 1001.0, 1e5, 1e5, 10.0)]
     result = searcher.run(mass_list)
     expected_data = {
         "glycan": ["HexNAc(2)Hex(5)NeuAc(1)"],
-        "raw_mz": [1000.],
-        "calibrated_mz": [1001.],
-        "theoretical_mz": [1001.],
+        "raw_mz": [1000.0],
+        "calibrated_mz": [1001.0],
+        "theoretical_mz": [1001.0],
         "intensity": [1e5],
         "area": [1e5],
-        "sn": [10.],
+        "sn": [10.0],
         "charge_carrier": ["Na+"],
         "delta": [0.0],
-        "ppm": [0.0]
+        "ppm": [0.0],
     }
     expected = pd.DataFrame(expected_data)
     assert_frame_equal(result, expected)

@@ -11,7 +11,6 @@ make_ion = partial(Ion.from_tuples, reducing_end=1.0, charge_carrier="Na+")
 
 
 class TestDeNovoEngine:
-
     @pytest.fixture
     def denovo(self):
         return DeNovoEngine(
@@ -114,7 +113,10 @@ class TestDeNovoEngine:
         denovo.mono_constraints = {"A": (0, 1), "B": (0, 1)}
         denovo.modifications = {"A": [0.0], "B": [0.0]}
         result = denovo.search(14, tol=0.1)
-        expected = [make_ion([("B", 0.0, 1)]), make_ion([("A", 0.0, 1), ("Ac", 0.0, 1)])]
+        expected = [
+            make_ion([("B", 0.0, 1)]),
+            make_ion([("A", 0.0, 1), ("Ac", 0.0, 1)]),
+        ]
         assert len(result) == len(expected)
         assert compare_ion_lists(result, expected)
 
@@ -123,11 +125,11 @@ class TestDeNovoEngine:
         class MockIon:
             mz: float
 
-        ion_list = [MockIon(mz) for mz in (2., 1., 3.)]
+        ion_list = [MockIon(mz) for mz in (2.0, 1.0, 3.0)]
         mocker.patch("glyhunter.denovo.DeNovoEngine.search", return_value=ion_list)
 
         result = denovo.search_closest(1.1, tol=0.1)
-        assert result == MockIon(1.)
+        assert result == MockIon(1.0)
 
     def test_search_closest_empty(self, mocker, denovo):
         mocker.patch("glyhunter.denovo.DeNovoEngine.search", return_value=[])
