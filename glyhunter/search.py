@@ -105,23 +105,7 @@ class MassListSearcher:
             else:
                 if ion := self.search_engine.search_closest(peak.mz, tol):
                     results.append(self.make_record(peak, ion))
-        result_df = pd.DataFrame(results, columns=SearchRecord._fields)
-
-        # Add additional columns
-        result_df["delta"] = result_df.calibrated_mz - result_df.theoretical_mz
-        result_df["ppm"] = (result_df.delta / result_df.raw_mz * 1e6).round(2)
-
-        if not self.all_candidates:
-            # Drop duplicate glycans
-            result_df = (
-                result_df.sort_values("ppm")  # Sort by ppm in ascending order
-                .drop_duplicates(
-                    "glycan", keep="first"
-                )  # Keep the one with the lowest ppm
-                .reset_index(drop=True)
-            )
-
-        return result_df
+        return self.get_result_df_from_records(results)
 
     @staticmethod
     def make_record(peak: Peak, ion: Ion) -> SearchRecord:
@@ -136,6 +120,36 @@ class MassListSearcher:
             sn=peak.sn,
             charge_carrier=ion.charge_carrier,
         )
+
+    def get_result_df_from_records(self, records: list[SearchRecord]) -> pd.DataFrame:
+        """Get a dataframe from a list of SearchRecords."""
+        result_df = pd.DataFrame(records, columns=SearchRecord._fields)
+        result_df = result_df.dropna(subset=["calibrated_mz"])
+        result_df = _add_delta_and_ppm_columns(result_df)
+        if not self.all_candidates:
+            result_df = _drop_glycan_duplicates(result_df)
+        return result_df
+
+
+def _add_delta_and_ppm_columns(df: pd.DataFrame) -> pd.DataFrame:
+    """Add delta and ppm columns to a result dataframe."""
+    if "calibrated_mz" in df.columns:
+        df["delta"] = df.calibrated_mz - df.theoretical_mz
+    else:
+        df["delta"] = df.raw_mz - df.theoretical_mz
+    df["ppm"] = (df.delta / df.raw_mz * 1e6).round(2)
+    return df
+
+
+def _drop_glycan_duplicates(df: pd.DataFrame) -> pd.DataFrame:
+    """Drop duplicate glycans from a result dataframe."""
+    return (
+        df.sort_values("ppm")  # Sort by ppm in ascending order
+        .drop_duplicates(
+            "glycan", keep="first"
+        )  # Keep the one with the lowest ppm
+        .reset_index(drop=True)
+    )
 
 
 class SearchRecord(NamedTuple):
