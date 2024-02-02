@@ -73,6 +73,7 @@ class TestGenerateIon:
         )
         assert results == [
             make_ion([("A", 1.0, 1), ("B", 2.0, 2)]),
+            make_ion([("A", 1.0, 1), ("B", 2.0, 1), ("B", 3.0, 1)]),
             make_ion([("A", 1.0, 1), ("B", 3.0, 2)]),
         ]
 

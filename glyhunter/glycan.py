@@ -1,7 +1,9 @@
 from __future__ import annotations
 
+from collections import Counter, ChainMap
+import copy
 from collections.abc import Mapping, Generator, Iterable
-from itertools import product
+from itertools import product, combinations_with_replacement
 
 from attrs import frozen, field, define
 
@@ -74,11 +76,7 @@ def generate_ion(
             global modification names as keys and their max counts as values.
     """
     modifications = {k: modifications.get(k, [0.0]) for k in comp}
-    for mods in product(*modifications.values()):
-        comp_with_mods = {
-            MonoSaccharide(name, modi): comp[name]
-            for name, modi in zip(modifications, mods)
-        }
+    for comp_with_mods in _add_local_modifications(comp, modifications):
         for global_mods in _possible_global_modifications(global_mod_constraints):
             comp_with_global_mods = comp_with_mods.copy()
             for name, count in global_mods.items():
@@ -88,6 +86,48 @@ def generate_ion(
                 reducing_end=reducing_end,
                 charge_carrier=charge_carrier,
             )
+
+
+def _add_local_modifications(
+    comp: Mapping[str, int], modifications: Mapping[str, list[float]]
+) -> list[dict[MonoSaccharide, int]]:
+    """Add local modifications to a composition.
+
+    Args:
+        comp: The composition of the glycan, with monosaccharide names
+            as keys and their counts as values.
+        modifications: The modifications to use. The keys are the monosaccharide names,
+            and the values are the mass of the modifications.
+
+    Returns:
+        list: A list of compositions with local modifications.
+    """
+    # A component of a composition is a subset of the composition
+    # with only one monosaccharide.
+    # The monosaacharides could have different modifications.
+    # For example, if the composition is "HexNAc(2)Hex(5)NeuAc(2)",
+    # and the modifications are {"NeuAc": [0.0, 1.0]},
+    # then the components are:
+    #    - [{MonoSaccharide('HexNAc', 0): 2}]  # no modification
+    #    - [{MonoSaccharide('Hex', 0): 5}]  # no modification
+    #    - [
+    #         {MonoSaccharide('NeuAc', 0): 2},
+    #         {MonoSaccharide('NeuAc', 1): 2},
+    #         {MonoSaccharide('NeuAc', 0): 1, MonoSaccharide('NeuAc', 1): 1},
+    #      ]
+    # Each list above is a possible combination of modifications.
+    # We can take the product of these lists to get all possible combinations.
+    components: list[list[dict[MonoSaccharide, int]]] = []
+
+    for name, count in comp.items():
+        potential_components: list[dict[MonoSaccharide, int]] = []
+        for modif_comb in combinations_with_replacement(modifications[name], count):
+            component = dict(Counter(MonoSaccharide(name, modi) for modi in modif_comb))
+            potential_components.append(component)
+        components.append(potential_components)
+
+    for mods in product(*components):
+        yield dict(ChainMap(*mods))
 
 
 def _possible_global_modifications(
