@@ -1,6 +1,6 @@
 [tool.poetry]
 name = "glyhunter"
-version = "0.1.5"
+version = "0.1.6"
 description = ""
 authors = ["fubin1999 <65430559+fubin1999@users.noreply.github.com>"]
 readme = "README.md"
