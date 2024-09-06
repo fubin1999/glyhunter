@@ -125,6 +125,8 @@ class MassListSearcher:
     def get_result_df_from_records(self, records: list[SearchRecord]) -> pd.DataFrame:
         """Get a dataframe from a list of SearchRecords."""
         result_df = pd.DataFrame(records, columns=SearchRecord._fields)
+        if records and records[0].calibrated_mz is None:
+            result_df = result_df.drop("calibrated_mz", axis=1)
         result_df = _add_delta_and_ppm_columns(result_df)
         if not self.all_candidates:
             result_df = _drop_glycan_duplicates(result_df)
