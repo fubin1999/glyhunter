@@ -3,6 +3,7 @@ from __future__ import annotations
 from collections.abc import Iterable
 from typing import NamedTuple, Protocol
 
+import numpy as np
 import pandas as pd
 from attrs import define
 from tqdm import tqdm
@@ -124,7 +125,6 @@ class MassListSearcher:
     def get_result_df_from_records(self, records: list[SearchRecord]) -> pd.DataFrame:
         """Get a dataframe from a list of SearchRecords."""
         result_df = pd.DataFrame(records, columns=SearchRecord._fields)
-        result_df = result_df.dropna(subset=["calibrated_mz"])
         result_df = _add_delta_and_ppm_columns(result_df)
         if not self.all_candidates:
             result_df = _drop_glycan_duplicates(result_df)
