@@ -8,25 +8,25 @@ from glyhunter import glycan
 class TestMonoSaccharide:
     def test_validate_name(self):
         with pytest.raises(ValueError):
-            glycan.MonoSaccharide(name="D")
+            glycan.MonoSaccharideResidue(name="D")
 
     def test_str(self):
-        assert str(glycan.MonoSaccharide(name="A")) == "A"
-        assert str(glycan.MonoSaccharide(name="A", modi=1.0)) == "A[+1.0000]"
+        assert str(glycan.MonoSaccharideResidue(name="A")) == "A"
+        assert str(glycan.MonoSaccharideResidue(name="A", modi=1.0)) == "A[+1.0000]"
 
     def test_mass(self):
-        assert glycan.MonoSaccharide(name="A").mass == 1.0
-        assert glycan.MonoSaccharide(name="A", modi=1.0).mass == 2.0
+        assert glycan.MonoSaccharideResidue(name="A").mass == 1.0
+        assert glycan.MonoSaccharideResidue(name="A", modi=1.0).mass == 2.0
 
 
 class TestIon:
     @pytest.fixture
     def mono_1(self):
-        return glycan.MonoSaccharide(name="A")
+        return glycan.MonoSaccharideResidue(name="A")
 
     @pytest.fixture
     def mono_2(self):
-        return glycan.MonoSaccharide(name="B", modi=1.0)
+        return glycan.MonoSaccharideResidue(name="B", modi=1.0)
 
     def test_mz(self, mono_1, mono_2):
         result = glycan.Ion(

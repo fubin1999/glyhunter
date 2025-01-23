@@ -15,11 +15,9 @@ from glyhunter.mass_list import MassList, Peak
 class SupportSearch(Protocol):
     """Protocol for supporting search."""
 
-    def search(self, mz: float, tol: float) -> list[Ion]:
-        ...
+    def search(self, mz: float, tol: float) -> list[Ion]: ...
 
-    def search_closest(self, mz: float, tol: float) -> Ion | None:
-        ...
+    def search_closest(self, mz: float, tol: float) -> Ion | None: ...
 
 
 def search_one(
@@ -147,9 +145,7 @@ def _drop_glycan_duplicates(df: pd.DataFrame) -> pd.DataFrame:
     """Drop duplicate glycans from a result dataframe."""
     return (
         df.sort_values("ppm")  # Sort by ppm in ascending order
-        .drop_duplicates(
-            "glycan", keep="first"
-        )  # Keep the one with the lowest ppm
+        .drop_duplicates("glycan", keep="first")  # Keep the one with the lowest ppm
         .reset_index(drop=True)
     )
 

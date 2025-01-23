@@ -26,13 +26,17 @@ st.write("GlyHunter is a tool for glycan annotation from flexAnalysis exported d
 st.header("Input Files")
 
 # Upload the XLSX data file.
-data_file = st.file_uploader("Upload an XLSX data exported from flexAnalysis.", type=["xlsx"])
+data_file = st.file_uploader(
+    "Upload an XLSX data exported from flexAnalysis.", type=["xlsx"]
+)
 with st.expander("File description"):
     st.write("In flexAnalysis, select `File` - `Export` - `Export to Excel`.")
     st.write("Each sheet in the XLSX file should be a spectrum.")
 
 # Upload the configuration file.
-config_file = st.file_uploader("Upload a configuration file. (Or use default)", type=["yaml"])
+config_file = st.file_uploader(
+    "Upload a configuration file. (Or use default)", type=["yaml"]
+)
 with st.expander("File description"):
     st.info(
         "Leave this field empty to use the default configuration, "
@@ -51,7 +55,9 @@ with st.expander("File description"):
     )
 
 # Upload the database file.
-database_file = st.file_uploader("Upload a database file. (Or use default)", type=["byonic"])
+database_file = st.file_uploader(
+    "Upload a database file. (Or use default)", type=["byonic"]
+)
 with st.expander("File description"):
     st.info("Leave this field empty to use the default human N-glycan database.")
     st.write(
@@ -65,7 +71,8 @@ with st.expander("File description"):
     st.write(
         "**The masses of glycans in the database file will be ignored by GlyHunter, "
         "so if you are preparing a database file manually, "
-        "just put in random numbers.**")
+        "just put in random numbers.**"
+    )
     st.download_button(
         label="Download the database file template",
         data=load_default_db(),

@@ -1,7 +1,6 @@
 from __future__ import annotations
 
 from collections import Counter, ChainMap
-import copy
 from collections.abc import Mapping, Generator, Iterable
 from itertools import product, combinations_with_replacement
 
@@ -80,7 +79,7 @@ def generate_ion(
         for global_mods in _possible_global_modifications(global_mod_constraints):
             comp_with_global_mods = comp_with_mods.copy()
             for name, count in global_mods.items():
-                comp_with_global_mods[MonoSaccharide(name)] = count
+                comp_with_global_mods[MonoSaccharideResidue(name)] = count
             yield Ion(
                 comp=comp_with_global_mods,
                 reducing_end=reducing_end,
@@ -90,7 +89,7 @@ def generate_ion(
 
 def _add_local_modifications(
     comp: Mapping[str, int], modifications: Mapping[str, list[float]]
-) -> list[dict[MonoSaccharide, int]]:
+) -> Generator[dict[MonoSaccharideResidue, int], None, None]:
     """Add local modifications to a composition.
 
     Args:
@@ -99,8 +98,8 @@ def _add_local_modifications(
         modifications: The modifications to use. The keys are the monosaccharide names,
             and the values are the mass of the modifications.
 
-    Returns:
-        list: A list of compositions with local modifications.
+    Yields:
+        Compositions with local modifications.
     """
     # A component of a composition is a subset of the composition
     # with only one monosaccharide.
@@ -117,12 +116,14 @@ def _add_local_modifications(
     #      ]
     # Each list above is a possible combination of modifications.
     # We can take the product of these lists to get all possible combinations.
-    components: list[list[dict[MonoSaccharide, int]]] = []
+    components: list[list[dict[MonoSaccharideResidue, int]]] = []
 
     for name, count in comp.items():
-        potential_components: list[dict[MonoSaccharide, int]] = []
+        potential_components: list[dict[MonoSaccharideResidue, int]] = []
         for modif_comb in combinations_with_replacement(modifications[name], count):
-            component = dict(Counter(MonoSaccharide(name, modi) for modi in modif_comb))
+            component = dict(
+                Counter(MonoSaccharideResidue(name, modi) for modi in modif_comb)
+            )
             potential_components.append(component)
         components.append(potential_components)
 
@@ -165,8 +166,10 @@ def check_comp(comp: dict[str, int]) -> tuple[bool, str]:
 
 
 @frozen
-class MonoSaccharide:
-    """A monosaccharide.
+class MonoSaccharideResidue:
+    """A monosaccharide residue.
+
+    A residue is a monosaccharide without two H and one O.
 
     Attributes:
         name (str): The name of the monosaccharide.
@@ -203,7 +206,7 @@ class Ion:
         charge_carrier (str): The charge carrier to use. Default to "Na+".
     """
 
-    comp: Mapping[MonoSaccharide, int] = field()
+    comp: Mapping[MonoSaccharideResidue, int] = field()
     reducing_end: float = field(default=0.0)
     charge_carrier: str = field(default="Na+")
 
@@ -246,5 +249,8 @@ class Ion:
         Examples:
             >>> Ion.from_tuples([("A", 0.0, 1), ("B", 1.0, 2)])
         """
-        comp = {MonoSaccharide(name, modi): count for name, modi, count in comp_tuples}
+        comp = {
+            MonoSaccharideResidue(name, modi): count
+            for name, modi, count in comp_tuples
+        }
         return cls(comp, reducing_end, charge_carrier)

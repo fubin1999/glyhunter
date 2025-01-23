@@ -4,7 +4,7 @@ import pytest
 from attrs import define
 
 from glyhunter.denovo import DeNovoEngine
-from glyhunter.glycan import MonoSaccharide, Ion
+from glyhunter.glycan import MonoSaccharideResidue, Ion
 
 
 make_ion = partial(Ion.from_tuples, reducing_end=1.0, charge_carrier="Na+")
@@ -41,17 +41,17 @@ class TestDeNovoEngine:
     def test_get_mono_candidates(self, denovo):
         denovo.global_mod_constraints = {"Ac": 1.0}
         expected = [
-            MonoSaccharide("A"),
-            MonoSaccharide("A", 1.0),
-            MonoSaccharide("B"),
-            MonoSaccharide("Ac"),
+            MonoSaccharideResidue("A"),
+            MonoSaccharideResidue("A", 1.0),
+            MonoSaccharideResidue("B"),
+            MonoSaccharideResidue("Ac"),
         ]
         assert denovo._mono_candidates == expected
 
     def test_filter_constraints(self):
         def mono(name, modi):
             """Helper function to create a MonoSaccharide."""
-            return MonoSaccharide(name, modi)
+            return MonoSaccharideResidue(name, modi)
 
         constraints = {"A": (1, 2), "B": (2, 3)}
         comps = [

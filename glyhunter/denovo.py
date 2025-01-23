@@ -6,7 +6,7 @@ from collections.abc import Sequence
 from attrs import define, field
 
 from glyhunter import glycan
-from glyhunter.glycan import Ion, MonoSaccharide
+from glyhunter.glycan import Ion, MonoSaccharideResidue
 
 
 @define
@@ -39,7 +39,7 @@ class DeNovoEngine:
     _mono_constraints: dict[str, tuple[int, int]]
     _global_mod_constraints: dict[str, int]
 
-    _mono_candidates: list[MonoSaccharide] = field(init=False, repr=False)
+    _mono_candidates: list[MonoSaccharideResidue] = field(init=False, repr=False)
     """This attribute stores all possible monosaccharides with different modifications.
     It is used as the candidates for the de novo search."""
     _constraints: dict[str, tuple[int, int]] = field(init=False, repr=False)
@@ -55,7 +55,7 @@ class DeNovoEngine:
 
         Both monosaccharides and global modifications (e.g. Ac) are considered.
         """
-        monos: list[MonoSaccharide] = []
+        monos: list[MonoSaccharideResidue] = []
 
         # Add monosaccharides
         for name, mods in self._modifications.items():
@@ -63,12 +63,12 @@ class DeNovoEngine:
                 self._mono_constraints[name][1] > 0
             ):  # max count > 0, for speed up searching
                 for mod in mods:
-                    monos.append(MonoSaccharide(name, mod))
+                    monos.append(MonoSaccharideResidue(name, mod))
 
         # Add global modifications
         for name, count in self._global_mod_constraints.items():
             if count > 0:  # same as above
-                monos.append(MonoSaccharide(name))
+                monos.append(MonoSaccharideResidue(name))
 
         self._mono_candidates = monos
 
@@ -126,7 +126,7 @@ class DeNovoEngine:
         candidates = [mono.mass for mono in self._mono_candidates]
         solutions = self._combination_sum(target, tol, candidates)
 
-        comps: list[dict[MonoSaccharide, int]] = []
+        comps: list[dict[MonoSaccharideResidue, int]] = []
         for sol in solutions:
             comp = Counter(self._mono_candidates[i] for i in sol)
             comps.append(comp)
@@ -170,7 +170,7 @@ class DeNovoEngine:
 
     @staticmethod
     def _filter_constrains(
-        comps: Sequence[dict[MonoSaccharide, int]],
+        comps: Sequence[dict[MonoSaccharideResidue, int]],
         constraints: dict[str, tuple[int, int]],
     ):
         """Filter the compositions by the constraints.
@@ -179,7 +179,7 @@ class DeNovoEngine:
         number of monosaccharides).
         Modifications are not considered when counting the monosaccharides.
         """
-        results: list[dict[MonoSaccharide, int]] = []
+        results: list[dict[MonoSaccharideResidue, int]] = []
         for comp in comps:
             comp_x_modif: Counter[str] = Counter()
             for mono, count in comp.items():
